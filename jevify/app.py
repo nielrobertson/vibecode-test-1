@@ -6,7 +6,7 @@ Run: python app.py   (then open http://localhost:5000)
 import base64
 import json
 import os
-import re
+import pathlib
 
 import requests
 from flask import Flask, Response, jsonify, request, send_from_directory
@@ -157,8 +157,8 @@ def fetch_repo_content(owner: str, repo: str, github_token: str | None = None) -
 ".join(parts)
 
 
-JEVIFY_PROMPT = "You are performing a Jevify audit. Repo content: {repo_content}"
-
+_PROMPT_FILE = pathlib.Path(__file__).parent / "prompt.txt"
+JEVIFY_PROMPT = _PROMPT_FILE.read_text(encoding="utf-8")
 
 @app.route("/")
 def index():
