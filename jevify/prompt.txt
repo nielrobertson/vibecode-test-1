@@ -1,1 +1,94 @@
-Replace this file with the full Jevify audit prompt text.
+You are performing a **Jevify audit** — a deep, rigorous investigation into what Jev (TypeSafe's structured decision model) could make possible in this project.
+
+Jev evaluates shared application state against multiple typed questions simultaneously, returning choices, rubric scores, and yes/no probabilities. It is designed to make language understanding a **routine computational operation** — cheap and fast enough to embed throughout an application, not just in dedicated LLM steps.
+
+---
+
+Here is the project content you should analyze:
+
+{repo_content}
+
+---
+
+Now deliver the full 6-step Jevify audit. Be concrete, specific, and grounded in the actual code above. Do not write generic filler — tie every observation to a file, function, or data flow you actually saw.
+
+## Step 1: Understand What This Project Does
+
+Inspect the code, architecture, data flows, prompts, tests, and structure. Identify:
+
+- What user outcomes the project is trying to deliver.
+- Where it currently spends money or time on model calls.
+- Where it generates text only to parse it into a decision.
+- Where it repeatedly processes the same context.
+- Where it uses brittle rules because semantic understanding seemed impractical.
+- Where it relies on manual review, coarse categories, sampling, or delayed batch processing.
+- Where it discards information or limits coverage to stay within a budget.
+
+Tie every observation to a specific file and execution path.
+
+---
+
+## Step 2: Redesign From First Principles
+
+Ask: *If many useful semantic judgments were affordable within this application's response-time budget, what would be designed differently?*
+
+Explore three kinds of opportunity:
+
+- **Direct savings** — perform existing work with less cost or latency at acceptable quality.
+- **Better outcomes** — improve coverage, relevance, reliability, or responsiveness within the same budget.
+- **New capabilities** — enable useful behavior not currently attempted. Give this substantial attention.
+
+Identify assumptions in the current architecture that exist *because* semantic computation was expensive. Explain which could change and what user-visible benefit follows.
+
+---
+
+## Step 3: Make the Strongest Opportunities Concrete
+
+For each serious candidate, specify:
+
+- The user problem and current behavior.
+- The exact integration point and available input state.
+- The specific questions Jev would answer and the appropriate primitives.
+- Which questions can share a request and which genuinely depend on earlier results.
+- How ordinary code would consume the answers.
+- What still requires generation, deeper reasoning, retrieval, or deterministic logic.
+- Expected benefit, implementation effort, and most consequential failure mode.
+
+For the top candidates, include representative request shapes and consumer pseudocode.
+
+---
+
+## Step 4: Test the Economics and Performance Assumptions
+
+Estimate the complete workflow: preparing inputs, network overhead, question tokens, downstream calls, retries, fallbacks, and mistakes. Compare against the current implementation and credible simpler alternatives.
+
+When measurements are unavailable, provide explicit assumptions, plausible ranges, and break-even conditions.
+
+---
+
+## Step 5: Design an Evaluation That Could Prove Us Wrong
+
+For the strongest opportunities, define:
+
+- Representative inputs and held-out test cases.
+- Baselines and task-level success criteria.
+- Relevant quality metrics, including asymmetric costs of false positives and false negatives.
+- End-to-end cost, latency distributions, and throughput under realistic load.
+- Clear go/no-go criteria.
+
+---
+
+## Step 6: Deliver a Recommendation We Can Act On
+
+Produce:
+
+- A concise assessment of how consequential this could be for this particular project.
+- A **ranked opportunity table** separating savings, quality improvements, and new capabilities.
+- Detailed designs for the **top 3 strongest opportunities**.
+- A first-principles sketch of how you would redesign the relevant parts today with Jev available.
+- The **smallest experiment** that would resolve the most important uncertainty.
+- Ideas you rejected and the evidence or reasoning behind rejecting them.
+
+---
+
+Be explicit about what you inspected, what you inferred, and what remains hypothetical.
