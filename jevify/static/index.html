@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jevify — Audit any GitHub repo for Jev opportunities</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg:#0d0f17; --surface:#161924; --accent:#6366f1; --text:#e2e8f0; --muted:#8892a8; --font:'Inter',system-ui,sans-serif; }
+    body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;font-size:15px;}
+    header{border-bottom:1px solid #262b40;padding:18px 40px;display:flex;align-items:center;gap:12px;}
+    .logo{font-size:20px;font-weight:800;}
+    .logo em{color:#818cf8;font-style:normal;}
+    main{max-width:860px;margin:0 auto;padding:56px 24px 80px;}
+    .hero{text-align:center;margin-bottom:48px;}
+    .hero h1{font-size:46px;font-weight:900;letter-spacing:-2px;margin-bottom:18px;}
+    .hero p{color:var(--muted);font-size:17px;max-width:560px;margin:0 auto;}
+    .card{background:var(--surface);border:1px solid #262b40;border-radius:18px;padding:32px;margin-bottom:24px;}
+    .field{margin-bottom:22px;}
+    label{display:block;font-size:11.5px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+    input[type="text"],input[type="password"]{width:100%;background:var(--bg);border:1px solid #30374f;border-radius:10px;padding:12px 16px;color:var(--text);font-size:14.5px;outline:none;}
+    select{background:var(--bg);border:1px solid #30374f;border-radius:10px;padding:11px 16px;color:var(--text);font-size:14px;outline:none;}
+    .btn-primary{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:11px;font-size:15.5px;font-weight:700;cursor:pointer;}
+    .btn-primary:disabled{opacity:.55;cursor:not-allowed;}
+    .error-box{display:none;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.28);border-radius:10px;padding:13px 16px;color:#f87171;font-size:13.5px;margin-bottom:16px;}
+    .error-box.show{display:block;}
+    .status-bar{display:none;align-items:center;gap:10px;padding:13px 18px;background:var(--surface);border:1px solid #262b40;border-radius:10px;margin-bottom:24px;}
+    .status-bar.show{display:flex;}
+    .spinner{width:16px;height:16px;border:2px solid #30374f;border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    #results{display:none;}
+    #results.show{display:block;}
+    .results-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+    .results-body{background:var(--surface);border:1px solid #262b40;border-radius:16px;padding:36px;line-height:1.75;overflow-x:auto;}
+    .btn-ghost{padding:7px 14px;background:var(--surface);border:1px solid #30374f;border-radius:8px;color:var(--muted);font-size:12.5px;cursor:pointer;font-weight:600;}
+  </style>
+</head>
+<body>
+<header>
+  <div class="logo">Jev<em>ify</em></div>
+</header>
+<main>
+  <div class="hero">
+    <h1>Audit any repo for Jev opportunities</h1>
+    <p>Point at a GitHub project and get a deep, 6-step analysis of where TypeSafe's structured decision model could slash costs, cut latency, and unlock new capabilities.</p>
+  </div>
+  <div class="card">
+    <div class="field">
+      <label>GitHub Repository URL</label>
+      <input type="text" id="repoUrl" placeholder="https://github.com/owner/repo" autocomplete="off"/>
+    </div>
+    <div class="field">
+      <label>OpenAI API Key</label>
+      <input type="password" id="openaiKey" placeholder="sk-…" autocomplete="new-password"/>
+    </div>
+    <div class="field">
+      <label>Model</label>
+      <select id="modelSelect">
+        <option value="gpt-4o" selected>gpt-4o (recommended)</option>
+        <option value="gpt-4o-mini">gpt-4o-mini (faster)</option>
+        <option value="o3">o3 (deepest reasoning)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>GitHub Token (optional)</label>
+      <input type="password" id="githubToken" placeholder="ghp_…" autocomplete="new-password"/>
+    </div>
+    <div style="margin-top:28px">
+      <div class="error-box" id="errorBox"></div>
+      <button class="btn-primary" id="auditBtn" onclick="runAudit()">Run Jevify Audit</button>
+    </div>
+  </div>
+  <div class="status-bar" id="statusBar"><div class="spinner"></div><span id="statusText">Initializing…</span></div>
+  <div id="results">
+    <div class="results-toolbar">
+      <span style="font-size:13px;font-weight:700;text-transform:uppercase;color:var(--muted)">Audit Report</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn-ghost" onclick="copyMarkdown()">Copy Markdown</button>
+        <button class="btn-ghost" onclick="downloadMarkdown()">Download .md</button>
+      </div>
+    </div>
+    <div class="results-body" id="resultsBody"></div>
+  </div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+<script>
+  let rawMd='';
+  const $=id=>document.getElementById(id);
+  function setStatus(msg){$('statusText').textContent=msg;$('statusBar').classList.add('show');}
+  function hideStatus(){$('statusBar').classList.remove('show');}
+  function showError(msg){const b=$('errorBox');b.textContent='Warning: '+msg;b.classList.add('show');}
+  function clearError(){$('errorBox').classList.remove('show');}
+  function renderMd(md){$('resultsBody').innerHTML=marked.parse(md);}
+  async function runAudit(){
+    const repoUrl=$('repoUrl').value.trim();
+    const openaiKey=$('openaiKey').value.trim();
+    const githubToken=$('githubToken').value.trim();
+    const model=$('modelSelect').value;
+    if(!repoUrl){showError('Please enter a GitHub repository URL.');return;}
+    if(!openaiKey){showError('Please enter your OpenAI API key.');return;}
+    clearError();rawMd='';
+    const btn=$('auditBtn');btn.disabled=true;
+    $('results').classList.remove('show');$('resultsBody').innerHTML='';
+    setStatus('Connecting...');
+    try{
+      const resp=await fetch('/api/audit',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({repo_url:repoUrl,openai_key:openaiKey,github_token:githubToken||null,model})});
+      if(!resp.ok){const err=await resp.json().catch(()=>({}));showError(err.error||'Server error');hideStatus();btn.disabled=false;return;}
+      const reader=resp.body.getReader();const decoder=new TextDecoder();let buffer='';
+      while(true){
+        const{done,value}=await reader.read();if(done)break;
+        buffer+=decoder.decode(value,{stream:true});
+        const lines=buffer.split('\n');buffer=lines.pop();
+        for(const line of lines){
+          if(!line.startsWith('data: '))continue;
+          const raw=line.slice(6).trim();if(!raw)continue;
+          let msg;try{msg=JSON.parse(raw);}catch{continue;}
+          if(msg.type==='status')setStatus(msg.message);
+          else if(msg.type==='error'){showError(msg.message);hideStatus();}
+          else if(msg.type==='start'){$('results').classList.add('show');}
+          else if(msg.type==='content'){rawMd+=msg.text;renderMd(rawMd);}
+          else if(msg.type==='done'){hideStatus();}
+        }
+      }
+    }catch(err){showError('Network error: '+err.message);hideStatus();}
+    finally{btn.disabled=false;}
+  }
+  async function copyMarkdown(){if(!rawMd)return;await navigator.clipboard.writeText(rawMd);}
+  function downloadMarkdown(){if(!rawMd)return;const blob=new Blob([rawMd],{type:'text/markdown'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='jevify-audit.md';a.click();URL.revokeObjectURL(url);}
+</script>
+</body>
+</html>
